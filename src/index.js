@@ -1,28 +1,40 @@
-
 const path = require('path')
 const http = require('http')
-const socketio = require('socket.io')
 const express = require('express')
+const socketio = require('socket.io')
+const Filter = require('bad-words')
 
 const app = express()
+const server = http.createServer(app)
+const io = socketio(server)
 
 const port = process.env.PORT || 3000
-
-// Define path for Express Config
 const publicDirectoryPath = path.join(__dirname, '../public')
-// Use express meddleware to serve public content
+
 app.use(express.static(publicDirectoryPath))
 
-const server = http.createServer(app)
- 
-const io = socketio(server)
- 
 io.on('connection', (socket) => {
-    console.log('New web socket connection')
-    socket.emit("Welcome Message", "Welcome!")
-    socket.on('MessageToUser', (message) => {
-        io.emit('Message', message)
+    console.log('New WebSocket connection')
+
+    socket.emit('Message', 'Welcome!')
+    socket.broadcast.emit('Message', 'A new user has joined!')
+    socket.on('MessageToUser', (message, callback) => {
+        const filter = new Filter()
+        filter.addWords('fuck')
+        if (filter.isProfane(message)) {
+            return callback('Profanity is not allowed.')
+        }
+        io.emit('MessageToUser', message)
+        callback()
+    })
+    socket.on('disconnect', () => {
+        io.emit('Message', 'A user has left.')
+    })
+    socket.on('sendLocation', (coords) => {
+        io.emit('Message', `http://google.come/maps?q=${coords.latitude},${coords.longitude}`)
     })
 })
- 
-server.listen(3000)
+
+server.listen(port, () => {
+    console.log(`Server is up on port ${port}!`)
+})
