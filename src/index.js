@@ -16,22 +16,23 @@ app.use(express.static(publicDirectoryPath))
 io.on('connection', (socket) => {
     console.log('New WebSocket connection')
 
-    socket.emit('Message', 'Welcome!')
-    socket.broadcast.emit('Message', 'A new user has joined!')
-    socket.on('MessageToUser', (message, callback) => {
+    socket.emit('message', 'Welcome!')
+    socket.broadcast.emit('message', 'A new user has joined!')
+    socket.on('sendMessage', (message, callback) => {
         const filter = new Filter()
         filter.addWords('fuck')
         if (filter.isProfane(message)) {
             return callback('Profanity is not allowed.')
         }
-        io.emit('MessageToUser', message)
+        io.emit('message', message)
         callback()
     })
     socket.on('disconnect', () => {
-        io.emit('Message', 'A user has left.')
+        io.emit('message', 'A user has left.')
     })
-    socket.on('sendLocation', (coords) => {
-        io.emit('Message', `http://google.come/maps?q=${coords.latitude},${coords.longitude}`)
+    socket.on('sendLocation', (coords, callback) => {
+        callback()
+        io.emit('locationMessage', `http://google.com/maps?q=${coords.latitude},${coords.longitude}`)
     })
 })
 
