@@ -1,3 +1,4 @@
+
 const socket = io()
 
 // server (emit) -> client (receive) -- acknowledgement --> server 
@@ -5,7 +6,7 @@ const socket = io()
 
 // Elements
 const $messageForm = document.querySelector('#message-form')
-const $messageFormInput = document.querySelector('#mesgToUser')
+const $messageFormInput = document.querySelector('#message')
 const $messageFormBtn = $messageForm.querySelector('#subBn')
 const $locationSendBtn = document.querySelector('#send-location')
 const $messages = document.querySelector('#messages')
@@ -13,25 +14,34 @@ const $messages = document.querySelector('#messages')
 
 // Templates
 const messageTemplate = document.querySelector('#message-template').innerHTML
-const locationTemplate = document.querySelector('#location-template').innerHTML
+const locationTemplate = document.querySelector('#location-message-template').innerHTML
+
+
+// Options
+
+const { username, room } = Qs.parse(location.search, { ignoreQueryPrefix: true })
 
 socket.on('message', (message) => {
     const html = Mustache.render(messageTemplate, {
-        message
+        message: message.text,
+        createdAt: moment(message.createdAt).format('h:mm a')
     })
     $messages.insertAdjacentHTML('beforeend', html)
 })
 
-socket.on('locationMessage', (url) =>{
+
+socket.on('locationMessage', (message) => {
     const html = Mustache.render(locationTemplate, {
-        url
+        url: message.url,
+        createdAt: moment(message.createdAt).format('h:mm a')
     })
     $messages.insertAdjacentHTML('beforeend', html)
 })
+
 $messageForm.addEventListener('submit', (e) => {
     e.preventDefault()
     $messageFormBtn.setAttribute('disabled', 'disabled')
-    const mesgToUser = e.target.elements.mesgToUser.value
+    const mesgToUser = e.target.elements.message.value
     console.log(mesgToUser)
     socket.emit('sendMessage', mesgToUser, (error) => {
         $messageFormBtn.removeAttribute('disabled')
@@ -60,3 +70,5 @@ $locationSendBtn.addEventListener('click', () => {
         })
     })
 })
+
+socket.emit('join', { username, room })
