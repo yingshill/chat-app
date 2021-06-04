@@ -27,31 +27,41 @@ io.on('connection', (socket) => {
         }
         socket.join(data.user.room)
         console.log("Successfully joined the room!")
-        socket.emit('message', generateMessage('Welcome!'))
-        socket.broadcast.to(data.user.room).emit('message', generateMessage(`${data.user.username} has joined!`))
+        socket.emit('message', generateMessage('Admin', 'Welcome!'))
+        socket.broadcast.to(data.user.room).emit('message', generateMessage('Admin', `${data.user.username} has joined!`))
+        io.to(data.room).emit('roomdata', {
+            room: data.room,
+            users: getUsersInRoom(data.room)
+        })
         callback()
     })
 
     socket.on('sendMessage', (message, callback) => {
+        const user = getUser(socket.id)
         const filter = new Filter()
         if (filter.isProfane(message)) {
             return callback('Profanity is not allowed.')
         }
-        io.to('Center City').emit('message', generateMessage(message))
+        io.to(user.room).emit('message', generateMessage(user.username, message))
         callback()
     })
 
     socket.on('disconnect', () => {
         const user = removeUser(socket.id)
         if (user) {
-            io.to(user.room).emit('message', generateMessage(`${user.username} has left.`))
+            io.to(user.room).emit('message', generateMessage('Admin', `${user.username} has left.`))
+            io.to(user.room).emit('roomdata', {
+                room: user.room,
+                users: getUsersInRoom(user.room)
+            })
         }
         
     })
 
     socket.on('sendLocation', (coords, callback) => {
+        const user = getUser(socket.id)
         callback()
-        io.emit('locationMessage', generateLocationMessage(`http://google.com/maps?q=${coords.latitude},${coords.longitude}`))
+        io.to(user.room).emit('locationMessage', generateLocationMessage(user.username, `http://google.com/maps?q=${coords.latitude},${coords.longitude}`))
     })
 })
 
